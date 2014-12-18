@@ -42,14 +42,14 @@
 <h2>Initial Data Analysis</h2>
 <p>The training and test data sets were downloaded to local storage and read into variables. The training set being quite large containing 19622 rows with 160 variables, and some of them having empty or NA values. </p>
 <pre>
-&gt;setwd("/home/tamas/workspace/testR")
-&gt;training &lt;- read.csv("data/pml-training.csv",TRUE,",")
-&gt;testing &lt;- read.csv("data/pml-testing.csv",TRUE,",")
-&gt;dim(training)
+&gt; setwd("/home/tamas/workspace/testR")
+&gt; training &lt;- read.csv("data/pml-training.csv",TRUE,",")
+&gt; testing &lt;- read.csv("data/pml-testing.csv",TRUE,",")
+&gt; dim(training)
 [1] 19622   160
-&gt;dim(testing)
+&gt; dim(testing)
 [1]  20 160
-&gt;head(training)
+&gt; head(training)
   X user_name raw_timestamp_part_1 raw_timestamp_part_2   cvtd_timestamp
 1 1  carlitos           1323084231               788290 05/12/2011 11:23
 2 2  carlitos           1323084231               808298 05/12/2011 11:23
@@ -70,7 +70,8 @@ getData <- function(dataset, name) {
 
 getTime <- function(subdata) {
 	t0 <- min(subdata$raw_timestamp_part_1)
-	t <- (subdata$raw_timestamp_part_1 - t0) * 2^20 + subdata$raw_timestamp_part_2
+	t <- (subdata$raw_timestamp_part_1 - t0) * 2^20 +
+          subdata$raw_timestamp_part_2
 	return(t)
 }
 
@@ -94,9 +95,9 @@ plotAll <- function(sensor) {
 </pre>
 <p>With the plotAll function different sensors could be examined. Like the sensor variable "accel_forearm_x" for instance.</p>
 <pre>
-&gt;png("accel_forearm_x.png",width = 640, height = 640, pointsize = 18)
-&gt;plotAll("accel_forearm_x")
-&gt;dev.off()
+&gt; png("accel_forearm_x.png",width = 640, height = 640, pointsize = 18)
+&gt; plotAll("accel_forearm_x")
+&gt; dev.off()
 </pre>
 <img src="images/accel_forearm_x.png"/>
 <p>While studying the plots for different sensors a couple of things could be observed.</p>
@@ -109,8 +110,8 @@ plotAll <- function(sensor) {
 <h2>Model Creation</h2>
 <p>To be able to create a Random Forests model the NA values has to be removed from the training data. But it turned out not to be enough as some of the variables in the training set are Factor types with to many levels for the Random Forest train functions to manage. Furthermore, some of the variables, like "X", "user_name", "raw_timestamp_part_1" etc are irrelevant for the identification, so eventually except the sought variable "classe" only the sensor variables with proper data were selected.</p>
 <pre>
-&gt;training1 &lt;- training[,colSums(is.na(training)) < 1]
-&gt;x <- training1[,c("roll_belt", "pitch_belt", "yaw_belt",
+&gt; training1 &lt;- training[,colSums(is.na(training)) &lt; 1]
+&gt; x &lt;- training1[,c("roll_belt", "pitch_belt", "yaw_belt",
             "roll_arm", "pitch_arm", "yaw_arm",
             "roll_dumbbell", "pitch_dumbbell", "yaw_dumbbell",
             "roll_forearm", "pitch_forearm", "yaw_forearm",
@@ -127,15 +128,14 @@ plotAll <- function(sensor) {
             "accel_forearm_x", "accel_forearm_y", "accel_forearm_z",
             "magnet_forearm_x", "magnet_forearm_y", "magnet_forearm_z",
             "classe")]
-&gt;
 </pre>
 <p>Since the run time when doing Random Forest computations can be quite long with large data sets, the data were sampled to get a subset of the data to start with. Before using the <b>train</b> function from the <b>caret</b> library an attempt to use the <b>randomForest</b> function directly were made. This function can be faster since it doesn't do any implicit extra calculations like out of bag cross validation.</p>
 <pre>
-&gt;library(randomForest)
-&gt;x1 &lt;- x[sample(nrow(x), 500),]
-&gt;set.seed(331)
-&gt;fit.rf &lt;- randomForest(classe ~ ., data=x1)
-&gt;print(fit.rf)
+&gt; library(randomForest)
+&gt; x1 &lt;- x[sample(nrow(x), 500),]
+&gt; set.seed(331)
+&gt; fit.rf &lt;- randomForest(classe ~ ., data=x1)
+&gt; print(fit.rf)
 
 Call:
  randomForest(formula = classe ~ ., data = x1) 
@@ -151,14 +151,13 @@ B  11 55  9  4  6  0.35294118
 C   3  4 80  2  0  0.10112360
 D   2  1  7 64  3  0.16883117
 E   2  2  6  2 88  0.12000000
-&gt;
 </pre>
 <p>A 14 percent error rate with just 500 samples, not bad considering what the data look like! Now increase the sample size to 5000 and see if the error rate decreases.</p>
 <pre>
-&gt;set.seed(331)
-&gt;x1 &lt;- x[sample(nrow(x), 5000),]
-&gt;fit.rf &lt;- randomForest(classe ~ ., data=x1)
-&gt;print(fit.rf)
+&gt; set.seed(331)
+&gt; x1 &lt;- x[sample(nrow(x), 5000),]
+&gt; fit.rf &lt;- randomForest(classe ~ ., data=x1)
+&gt; print(fit.rf)
 
 Call:
  randomForest(formula = classe ~ ., data = x1) 
@@ -178,11 +177,11 @@ E    0   0   1   5 913 0.006528836
 <p>It does. The out of band estimation of the error rate is just 2 percent. What about variable importance? Can some of the variables be dropped to keep computation times down? The variable importance can be extracted and plotted as follows.</p>
 
 <pre>
-&gt;imp1 &lt;- data.frame(importance(fit.rf))
-&gt;attach(imp1)
-&gt;imp2 &lt;- imp1[order(-MeanDecreaseGini), , drop=FALSE]
-&gt;detach(imp1)
-&gt;head(imp2)
+&gt; imp1 &lt;- data.frame(importance(fit.rf))
+&gt; attach(imp1)
+&gt; imp2 &lt;- imp1[order(-MeanDecreaseGini), , drop=FALSE]
+&gt; detach(imp1)
+&gt; head(imp2)
                   MeanDecreaseGini
 roll_belt                 312.9281
 yaw_belt                  206.2780
@@ -191,16 +190,16 @@ magnet_dumbbell_z         188.9785
 magnet_dumbbell_y         165.1653
 pitch_belt                164.0823
 
-&gt;png("importance500.png",width = 640, height = 640, pointsize = 18)
-&gt;ploty &lt;-  as.vector(imp2$MeanDecreaseGini)
-&gt;plot(ploty, main="Variable importance", xlab="variable", ylab="importance", pch=19)
-&gt;text(ploty, row.names(imp2[1]), cex=0.8, pos=4, xpd=TRUE, srt=80)
-&gt;dev.off()
+&gt; png("importance500.png",width = 640, height = 640, pointsize = 18)
+&gt; ploty &lt;-  as.vector(imp2$MeanDecreaseGini)
+&gt; plot(ploty, main="Variable importance", xlab="variable", ylab="importance", pch=19)
+&gt; text(ploty, row.names(imp2[1]), cex=0.8, pos=4, xpd=TRUE, srt=80)
+&gt; dev.off()
 </pre>
 <img src="images/importance500.png"/>
 <p>Even if there are 5-6 variables which appears to be more important then the others, the decrease in importance is quite slow. But to try to get faster computation times when more samples are being used only the 15 most important variables are picked.</p>
 <pre>
-&gt;x &lt;- training1[,c("roll_belt", "pitch_belt", "yaw_belt",
+&gt; x &lt;- training1[,c("roll_belt", "pitch_belt", "yaw_belt",
        "magnet_dumbbell_x", "magnet_dumbbell_y", "magnet_dumbbell_z",
 	   "pitch_forearm", "roll_forearm",
 	   "magnet_belt_y", "magnet_belt_z",
@@ -210,10 +209,10 @@ pitch_belt                164.0823
 </pre>
 <p>By using this reduced set of variables how much out of bag accuracy have we lost? Make a new computation with the reduced set of variables.</p>
 <pre>
-&gt;set.seed(331)
-&gt;x1 &lt;- x[sample(nrow(x), 5000),]
-&gt;fit.rf &lt;- randomForest(classe ~ ., data=x1)
-&gt;print(fit.rf)
+&gt; set.seed(331)
+&gt; x1 &lt;- x[sample(nrow(x), 5000),]
+&gt; fit.rf &lt;- randomForest(classe ~ ., data=x1)
+&gt; print(fit.rf)
 
 Call:
  randomForest(formula = classe ~ ., data = x1) 
@@ -241,11 +240,11 @@ dev.off()
 <h2>Model Validation</h2>
 <p>With this reduced set of variables split the traning data into one set for training and one for validation of the obtained model. Set the number of trees to 50 to start with.</p>
 <pre>
-&gt;trainSampl &lt;- sample(nrow(x), 0.80 * dim(x)[1] )
-&gt;x1 &lt;- x[trainSampl,]
-&gt;v1 &lt;- x[-trainSampl,]
-&gt;fit.rf &lt;- randomForest(classe ~ ., data=x1, ntree = 50)
-&gt;print(fit.rf)
+&gt; trainSampl &lt;- sample(nrow(x), 0.80 * dim(x)[1] )
+&gt; x1 &lt;- x[trainSampl,]
+&gt; v1 &lt;- x[-trainSampl,]
+&gt; fit.rf &lt;- randomForest(classe ~ ., data=x1, ntree = 50)
+&gt; print(fit.rf)
 
 Call:
  randomForest(formula = classe ~ ., data = x1, ntree = 50) 
@@ -264,8 +263,8 @@ E    1    5    5   12 2881 0.007920110
 </pre>
 <p>Not too bad. Now let us use the model and do a prediction of the "classe" variable using the validation data and see how good the model are at predicting.</p>
 <pre>
-&gt;val1 &lt;- predict(fit.rf,v1)
-&gt;table(val1,v1$classe)
+&gt; val1 &lt;- predict(fit.rf,v1)
+&gt; table(val1,v1$classe)
     
 val1    A    B    C    D    E
    A 1144    6    1    0    0
@@ -277,11 +276,11 @@ val1    A    B    C    D    E
 <p>Very good, and the model can still be improoved by using more variables and growing the forest larger.</p>
 <p>Now try to use the train function from the caret package to fit a Random Forest model. Are the results comparable?</p>
 <pre>
-&gt;library(caret)
-&gt;set.seed(331)
-&gt;tc &lt;- trainControl(method="cv", number=2)
-&gt;fit.rf &lt;- train(classe ~., data=x1, method="rf", trControl=tc, ntree=50)
-&gt;print(fit.rf)
+&gt; library(caret)
+&gt; set.seed(331)
+&gt; tc &lt;- trainControl(method="cv", number=2)
+&gt; fit.rf &lt;- train(classe ~., data=x1, method="rf", trControl=tc, ntree=50)
+&gt; print(fit.rf)
 Random Forest 
 
 15697 samples
@@ -303,7 +302,7 @@ Resampling results across tuning parameters:
 Accuracy was used to select the optimal model using  the largest value.
 The final value used for the model was mtry = 8. 
 
-&gt;confusionMatrix(fit.rf)
+&gt; confusionMatrix(fit.rf)
 Cross-Validated (2 fold) Confusion Matrix 
 
 (entries are percentages of table totals)
@@ -316,8 +315,8 @@ Prediction    A    B    C    D    E
          D  0.0  0.2  0.2 16.1  0.1
          E  0.0  0.0  0.0  0.1 18.2
 
-&gt;val1 &lt;- predict(fit.rf,v1)
-&gt;table(val1,v1$classe)
+&gt; val1 &lt;- predict(fit.rf,v1)
+&gt; table(val1,v1$classe)
     
 val1    A    B    C    D    E
    A 1144   10    1    0    0
@@ -331,20 +330,34 @@ val1    A    B    C    D    E
 <h2>Testing</h2>
 <p>Even if the models could be improved by using more variables or buildning more trees, the current model was able to make a correct prediction of the "classe" variable from the test set.</p>
 <pre>
-&gt;testing &lt;- read.csv("data/pml-testing.csv",TRUE,",")
-&gt;pred1 &lt;- predict(fit.rf,testing)
-&gt;as.vector(pred1)
+&gt; testing &lt;- read.csv("data/pml-testing.csv",TRUE,",")
+&gt; pred1 &lt;- predict(fit.rf,testing)
+&gt; as.vector(pred1)
 
  [1] "B" "A" "B" "A" "A" "E" "D" "B" "A" "A" "B" "C" "B" "A" "E" "E" "A" "B" "B"
 [20] "B"
 </pre>
-<p> The results were submitted by uploading the created result files following the instructions and were graded all correct.</p>
+<p>The results were submitted by uploading the created result files following the instructions and were graded all correct.</p>
 <p/>
 <p> Great success!</p>
 <P/>
+<p>Out of curiosity how much the model could be improved the data to use for training were reverted to use all (48) relevant sensor variables and to create a Random Forest model with all the available traning samples (80 percent traning and 20 percent validation) and 150 trees. This improved the error rate to 0.5 percent and the prediction rate was quite good.</p>
+<pre>
+&gt; val1 &lt;- predict(fit.rf,v1)
+&gt; table(val1,v1$classe)
+    
+val1    A    B    C    D    E
+   A 1091    3    0    0    0
+   B    0  741    6    0    0
+   C    0    0  672    2    0
+   D    0    0    1  648    0
+   E    1    0    0    0  760
+</pre>
+<P/>
+<P/>
 <p>Tamas Szabo<br/>
 Vall, Gotland<br/>
-18 December 2014</p>
+19 December 2014</p>
       </section>
     </div>
 
